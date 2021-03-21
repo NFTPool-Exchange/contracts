@@ -83,7 +83,7 @@ contract Exchange is ERC20, ERC1155Holder {
 
         stables_bought = getPriceNftToStable(nftAmt);
 
-        stable.safeTransferFrom(address(this), msg.sender, stables_bought);
+        stable.safeTransfer(msg.sender, stables_bought);
     }
 
     function stableToNft(uint256 stableAmt)
