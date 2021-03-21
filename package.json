@@ -1,0 +1,31 @@
+{
+  "name": "contracts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "compile": "truffle compile",
+    "just-test": "npx mocha --exit --recursive --timeout 200000",
+    "test": "truffle compile | npx mocha --exit --recursive --timeout 200000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NFTPool-Exchange/contracts.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NFTPool-Exchange/contracts/issues"
+  },
+  "homepage": "https://github.com/NFTPool-Exchange/contracts#readme",
+  "dependencies": {
+    "@openzeppelin/contracts": "^3.1.0",
+    "@openzeppelin/test-environment": "^0.1.9",
+    "@openzeppelin/test-helpers": "^0.5.10",
+    "mocha": "^8.2.1"
+  }
+}
