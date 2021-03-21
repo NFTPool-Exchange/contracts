@@ -134,6 +134,6 @@ contract Exchange is ERC20, ERC1155Holder {
         uint256 denominator =
             input_reserve.mul(1000).add(input_amount_with_fee);
 
-        return numerator / denominator;
+        return numerator.div(denominator);
     }
 }
