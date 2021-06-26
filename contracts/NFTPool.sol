@@ -7,12 +7,19 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
-contract Exchange is ERC20, ERC1155Holder {
+contract NFTPool is ERC20, ERC1155Holder {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable ERC20Token;
     IERC1155 public immutable ERC1155Token;
     uint256 public immutable ERC1155ID;
+
+    // --- EIP712 for Permit  ---
+    bytes32 public immutable DOMAIN_SEPARATOR;
+    // PERMIT_TYPEHASH = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+    bytes32 public constant PERMIT_TYPEHASH =
+        0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
+    mapping(address => uint256) public nonces;
 
     event Mint(
         address indexed sender,
@@ -51,6 +58,57 @@ contract Exchange is ERC20, ERC1155Holder {
         ERC20Token = _ERC20Token;
         ERC1155Token = _ERC1155Token;
         ERC1155ID = _ERC1155ID;
+
+        uint256 chainId;
+        assembly {
+            chainId := chainid()
+        }
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                keccak256(
+                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+                ),
+                keccak256(bytes("Zapper")),
+                keccak256(bytes("1")),
+                chainId,
+                address(this)
+            )
+        );
+    }
+
+    // --- Approve by permit signature ---
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        require(deadline >= block.timestamp, "NFTLP: EXPIRED");
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                DOMAIN_SEPARATOR,
+                keccak256(
+                    abi.encode(
+                        PERMIT_TYPEHASH,
+                        owner,
+                        spender,
+                        value,
+                        nonces[owner]++,
+                        deadline
+                    )
+                )
+            )
+        );
+        address recoveredAddress = ecrecover(digest, v, r, s);
+        require(
+            recoveredAddress != address(0) && recoveredAddress == owner,
+            "NFTLP: INVALID_SIGNATURE"
+        );
+        _approve(owner, spender, value);
     }
 
     function addLiquidity(uint256 _ERC1155Amount, uint256 _maxERC20Amount)
