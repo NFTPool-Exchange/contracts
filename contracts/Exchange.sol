@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: NONE
-pragma solidity ^0.6.0;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
-import "@openzeppelin/contracts/token/ERC1155/ERC1155Holder.sol";
+import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 contract Exchange is ERC20, ERC1155Holder {
-    using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     IERC20 public stable;
@@ -20,7 +18,7 @@ contract Exchange is ERC20, ERC1155Holder {
         IERC20 _stable,
         IERC1155 _ERC1155NFT,
         uint256 _nftID
-    ) public ERC20("NFPE LP", "NFLP") {
+    ) ERC20("NFPE LP", "NFLP") {
         require(
             address(_stable) != address(0) &&
                 address(_ERC1155NFT) != address(0),
@@ -44,8 +42,7 @@ contract Exchange is ERC20, ERC1155Holder {
         } else {
             (uint256 nft_reserve, uint256 stable_reserve) = getReserves();
 
-            uint256 stable_amount =
-                (nftAmt.mul(stable_reserve).div(nft_reserve)).add(1);
+            uint256 stable_amount = (nftAmt * stable_reserve) / nft_reserve + 1;
             require(
                 stable_amount <= maxStableAmt,
                 "Insufficient Stable Provided"
@@ -54,7 +51,7 @@ contract Exchange is ERC20, ERC1155Holder {
             nft.safeTransferFrom(msg.sender, address(this), nftID, nftAmt, "");
             stable.safeTransferFrom(msg.sender, address(this), stable_amount);
 
-            lp_minted = nftAmt.mul(totalSupply()).div(nft_reserve);
+            lp_minted = (nftAmt * totalSupply()) / nft_reserve;
         }
 
         _mint(msg.sender, lp_minted);
@@ -62,12 +59,12 @@ contract Exchange is ERC20, ERC1155Holder {
 
     function removeLiquidity(uint256 lpAmt)
         external
-        returns (uint256, uint256)
+        returns (uint256 nft_amount, uint256 stable_amount)
     {
         (uint256 nft_reserve, uint256 stable_reserve) = getReserves();
 
-        uint256 nft_amount = lpAmt.mul(nft_reserve).div(totalSupply());
-        uint256 stable_amount = lpAmt.mul(stable_reserve).div(totalSupply());
+        nft_amount = (lpAmt * nft_reserve) / totalSupply();
+        stable_amount = (lpAmt * stable_reserve) / totalSupply();
 
         _burn(msg.sender, lpAmt);
 
@@ -129,11 +126,10 @@ contract Exchange is ERC20, ERC1155Holder {
         uint256 input_reserve,
         uint256 output_reserve
     ) public pure returns (uint256) {
-        uint256 input_amount_with_fee = input_amount.mul(997);
-        uint256 numerator = input_amount_with_fee.mul(output_reserve);
-        uint256 denominator =
-            input_reserve.mul(1000).add(input_amount_with_fee);
+        uint256 input_amount_with_fee = input_amount * 997;
+        uint256 numerator = input_amount_with_fee * output_reserve;
+        uint256 denominator = input_reserve * 1000 + input_amount_with_fee;
 
-        return numerator.div(denominator);
+        return numerator / denominator;
     }
 }
