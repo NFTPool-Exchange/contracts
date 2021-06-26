@@ -69,7 +69,7 @@ contract NFTPool is ERC20, ERC1155Holder {
                 keccak256(
                     "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
                 ),
-                keccak256(bytes("Zapper")),
+                keccak256(bytes("NFTPool")),
                 keccak256(bytes("1")),
                 chainId,
                 address(this)
