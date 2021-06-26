@@ -10,9 +10,9 @@ import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 contract Exchange is ERC20, ERC1155Holder {
     using SafeERC20 for IERC20;
 
-    IERC20 public ERC20Token;
-    IERC1155 public ERC1155Token;
-    uint256 public ERC1155ID;
+    IERC20 public immutable ERC20Token;
+    IERC1155 public immutable ERC1155Token;
+    uint256 public immutable ERC1155ID;
 
     constructor(
         IERC20 _ERC20Token,
