@@ -10,110 +10,149 @@ import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 contract Exchange is ERC20, ERC1155Holder {
     using SafeERC20 for IERC20;
 
-    IERC20 public stable;
-    IERC1155 public nft;
-    uint256 public nftID;
+    IERC20 public ERC20Token;
+    IERC1155 public ERC1155Token;
+    uint256 public ERC1155ID;
 
     constructor(
-        IERC20 _stable,
-        IERC1155 _ERC1155NFT,
-        uint256 _nftID
+        IERC20 _ERC20Token,
+        IERC1155 _ERC1155Token,
+        uint256 _ERC1155ID
     ) ERC20("NFTPool LP", "NFTLP") {
         require(
-            address(_stable) != address(0) &&
-                address(_ERC1155NFT) != address(0),
+            address(_ERC20Token) != address(0) &&
+                address(_ERC1155Token) != address(0),
             "Null Address"
         );
 
-        stable = _stable;
-        nft = _ERC1155NFT;
-        nftID = _nftID;
+        ERC20Token = _ERC20Token;
+        ERC1155Token = _ERC1155Token;
+        ERC1155ID = _ERC1155ID;
     }
 
-    function addLiquidity(uint256 nftAmt, uint256 maxStableAmt)
+    function addLiquidity(uint256 _ERC1155Amount, uint256 _maxERC20Amount)
         external
         returns (uint256 lpMinted)
     {
         if (totalSupply() == 0) {
-            nft.safeTransferFrom(msg.sender, address(this), nftID, nftAmt, "");
-            stable.safeTransferFrom(msg.sender, address(this), maxStableAmt);
+            ERC1155Token.safeTransferFrom(
+                msg.sender,
+                address(this),
+                ERC1155ID,
+                _ERC1155Amount,
+                ""
+            );
+            ERC20Token.safeTransferFrom(
+                msg.sender,
+                address(this),
+                _maxERC20Amount
+            );
 
-            lpMinted = maxStableAmt;
+            lpMinted = _maxERC20Amount;
         } else {
-            (uint256 nftReserve, uint256 stableReserve) = getReserves();
+            (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
 
-            uint256 stableAmount = (nftAmt * stableReserve) / nftReserve + 1;
-            require(stableAmount <= maxStableAmt, "Insufficient Stable Amount");
+            uint256 ERC20Amount = (_ERC1155Amount * ERC20Reserve) /
+                ERC1155Reserve +
+                1;
+            require(
+                ERC20Amount <= _maxERC20Amount,
+                "Insufficient Stable Amount"
+            );
 
-            nft.safeTransferFrom(msg.sender, address(this), nftID, nftAmt, "");
-            stable.safeTransferFrom(msg.sender, address(this), stableAmount);
+            ERC1155Token.safeTransferFrom(
+                msg.sender,
+                address(this),
+                ERC1155ID,
+                _ERC1155Amount,
+                ""
+            );
+            ERC20Token.safeTransferFrom(msg.sender, address(this), ERC20Amount);
 
-            lpMinted = (nftAmt * totalSupply()) / nftReserve;
+            lpMinted = (_ERC1155Amount * totalSupply()) / ERC1155Reserve;
         }
 
         _mint(msg.sender, lpMinted);
     }
 
-    function removeLiquidity(uint256 lpAmt)
+    function removeLiquidity(uint256 _lpAmt)
         external
-        returns (uint256 nftAmount, uint256 stableAmount)
+        returns (uint256 ERC1155Amount, uint256 ERC20Amount)
     {
-        (uint256 nftReserve, uint256 stableReserve) = getReserves();
+        (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
 
-        nftAmount = (lpAmt * nftReserve) / totalSupply();
-        stableAmount = (lpAmt * stableReserve) / totalSupply();
+        ERC1155Amount = (_lpAmt * ERC1155Reserve) / totalSupply();
+        ERC20Amount = (_lpAmt * ERC20Reserve) / totalSupply();
 
-        _burn(msg.sender, lpAmt);
+        _burn(msg.sender, _lpAmt);
 
-        nft.safeTransferFrom(address(this), msg.sender, nftID, nftAmount, "");
-        stable.safeTransferFrom(address(this), msg.sender, stableAmount);
+        ERC1155Token.safeTransferFrom(
+            address(this),
+            msg.sender,
+            ERC1155ID,
+            ERC1155Amount,
+            ""
+        );
+        ERC20Token.safeTransferFrom(address(this), msg.sender, ERC20Amount);
     }
 
-    function nftToStable(uint256 nftAmt)
+    function ERC1155ToERC20(uint256 _ERC1155Amount)
         public
-        returns (uint256 stablesBought)
+        returns (uint256 ERC20Bought)
     {
-        stablesBought = getPriceNftToStable(nftAmt);
+        ERC20Bought = getPriceERC1155toERC20(_ERC1155Amount);
 
-        nft.safeTransferFrom(msg.sender, address(this), nftID, nftAmt, "");
-        stable.safeTransfer(msg.sender, stablesBought);
+        ERC1155Token.safeTransferFrom(
+            msg.sender,
+            address(this),
+            ERC1155ID,
+            _ERC1155Amount,
+            ""
+        );
+        ERC20Token.safeTransfer(msg.sender, ERC20Bought);
     }
 
-    function stableToNft(uint256 stableAmt)
+    function ERC20toERC1155(uint256 _ERC20Amount)
         public
-        returns (uint256 nftsBought)
+        returns (uint256 ERC1155Bought)
     {
-        nftsBought = getPriceStableToNft(stableAmt);
+        ERC1155Bought = getPriceERC20toERC1155(_ERC20Amount);
 
-        stable.safeTransferFrom(msg.sender, address(this), stableAmt);
-        nft.safeTransferFrom(address(this), msg.sender, nftID, nftsBought, "");
+        ERC20Token.safeTransferFrom(msg.sender, address(this), _ERC20Amount);
+        ERC1155Token.safeTransferFrom(
+            address(this),
+            msg.sender,
+            ERC1155ID,
+            ERC1155Bought,
+            ""
+        );
     }
 
     function getReserves()
         public
         view
-        returns (uint256 nftReserve, uint256 stableReserve)
+        returns (uint256 ERC1155Reserve, uint256 ERC20Reserve)
     {
-        nftReserve = nft.balanceOf(address(this), nftID);
-        stableReserve = stable.balanceOf(address(this));
+        ERC1155Reserve = ERC1155Token.balanceOf(address(this), ERC1155ID);
+        ERC20Reserve = ERC20Token.balanceOf(address(this));
     }
 
-    function getPriceNftToStable(uint256 nftAmt)
+    function getPriceERC1155toERC20(uint256 _ERC1155Amount)
         public
         view
-        returns (uint256 stablesBought)
+        returns (uint256 ERC20Bought)
     {
-        (uint256 nftReserve, uint256 stableReserve) = getReserves();
-        stablesBought = price(nftAmt, nftReserve, stableReserve);
+        (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
+        ERC20Bought = price(_ERC1155Amount, ERC1155Reserve, ERC20Reserve);
     }
 
-    function getPriceStableToNft(uint256 stableAmt)
+    function getPriceERC20toERC1155(uint256 _ERC20Amount)
         public
         view
-        returns (uint256 nftsBought)
+        returns (uint256 ERC1155Bought)
     {
-        (uint256 nftReserve, uint256 stableReserve) = getReserves();
-        nftsBought = price(stableAmt, stableReserve, nftReserve);
+        (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
+        ERC1155Bought = price(_ERC20Amount, ERC20Reserve, ERC1155Reserve);
     }
 
     function price(
