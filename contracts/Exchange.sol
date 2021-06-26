@@ -14,6 +14,29 @@ contract Exchange is ERC20, ERC1155Holder {
     IERC1155 public immutable ERC1155Token;
     uint256 public immutable ERC1155ID;
 
+    event Mint(
+        address indexed sender,
+        uint256 ERC1155Amount,
+        uint256 ERC20Amount,
+        uint256 lpAmount
+    );
+    event Burn(
+        address indexed sender,
+        uint256 ERC1155Amount,
+        uint256 ERC20Amount,
+        uint256 lpAmount
+    );
+    event SwapERC1155ToERC20(
+        address indexed sender,
+        uint256 ERC1155AmountIn,
+        uint256 ERC20AmountOut
+    );
+    event SwapERC20ToERC1155(
+        address indexed sender,
+        uint256 ERC20AmountIn,
+        uint256 ERC1155AmountOut
+    );
+
     constructor(
         IERC20 _ERC20Token,
         IERC1155 _ERC1155Token,
@@ -49,6 +72,7 @@ contract Exchange is ERC20, ERC1155Holder {
             );
 
             lpMinted = _maxERC20Amount;
+            emit Mint(msg.sender, _ERC1155Amount, _maxERC20Amount, lpMinted);
         } else {
             (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
 
@@ -57,7 +81,7 @@ contract Exchange is ERC20, ERC1155Holder {
                 1;
             require(
                 ERC20Amount <= _maxERC20Amount,
-                "Insufficient Stable Amount"
+                "Insufficient ERC20 Amount"
             );
 
             ERC1155Token.safeTransferFrom(
@@ -70,21 +94,23 @@ contract Exchange is ERC20, ERC1155Holder {
             ERC20Token.safeTransferFrom(msg.sender, address(this), ERC20Amount);
 
             lpMinted = (_ERC1155Amount * totalSupply()) / ERC1155Reserve;
+            emit Mint(msg.sender, _ERC1155Amount, ERC20Amount, lpMinted);
         }
 
         _mint(msg.sender, lpMinted);
     }
 
-    function removeLiquidity(uint256 _lpAmt)
+    function removeLiquidity(uint256 _lpAmount)
         external
         returns (uint256 ERC1155Amount, uint256 ERC20Amount)
     {
         (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
 
-        ERC1155Amount = (_lpAmt * ERC1155Reserve) / totalSupply();
-        ERC20Amount = (_lpAmt * ERC20Reserve) / totalSupply();
+        ERC1155Amount = (_lpAmount * ERC1155Reserve) / totalSupply();
+        ERC20Amount = (_lpAmount * ERC20Reserve) / totalSupply();
 
-        _burn(msg.sender, _lpAmt);
+        _burn(msg.sender, _lpAmount);
+        emit Burn(msg.sender, ERC1155Amount, ERC20Amount, _lpAmount);
 
         ERC1155Token.safeTransferFrom(
             address(this),
@@ -110,6 +136,8 @@ contract Exchange is ERC20, ERC1155Holder {
             ""
         );
         ERC20Token.safeTransfer(msg.sender, ERC20Bought);
+
+        emit SwapERC1155ToERC20(msg.sender, _ERC1155Amount, ERC20Bought);
     }
 
     function ERC20toERC1155(uint256 _ERC20Amount)
@@ -126,6 +154,8 @@ contract Exchange is ERC20, ERC1155Holder {
             ERC1155Bought,
             ""
         );
+
+        emit SwapERC20ToERC1155(msg.sender, _ERC20Amount, ERC1155Bought);
     }
 
     function getReserves()
