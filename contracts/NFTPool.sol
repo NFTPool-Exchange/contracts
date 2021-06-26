@@ -112,10 +112,13 @@ contract NFTPool is ERC20, ERC1155Holder {
         _approve(owner, spender, value);
     }
 
-    function addLiquidity(uint256 _ERC1155Amount, uint256 _maxERC20Amount)
-        external
-        returns (uint256 lpMinted)
-    {
+    function addLiquidity(
+        uint256 _ERC1155Amount,
+        uint256 _maxERC20Amount,
+        uint256 _deadline
+    ) external returns (uint256 lpMinted) {
+        require(_deadline >= block.timestamp, "NFTP: EXPIRED");
+
         if (totalSupply() == 0) {
             ERC1155Token.safeTransferFrom(
                 msg.sender,
@@ -159,14 +162,24 @@ contract NFTPool is ERC20, ERC1155Holder {
         _mint(msg.sender, lpMinted);
     }
 
-    function removeLiquidity(uint256 _lpAmount)
-        external
-        returns (uint256 ERC1155Amount, uint256 ERC20Amount)
-    {
+    function removeLiquidity(
+        uint256 _lpAmount,
+        uint256 _minERC1155,
+        uint256 _minERC20,
+        uint256 _deadline
+    ) external returns (uint256 ERC1155Amount, uint256 ERC20Amount) {
+        require(_deadline >= block.timestamp, "NFTP: EXPIRED");
+
         (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
 
         ERC1155Amount = (_lpAmount * ERC1155Reserve) / totalSupply();
         ERC20Amount = (_lpAmount * ERC20Reserve) / totalSupply();
+
+        require(
+            ERC1155Amount >= _minERC1155,
+            "NFTP: Insufficient ERC1155 Amount"
+        );
+        require(ERC20Amount >= _minERC20, "NFTP: Insufficient ERC20 Amount");
 
         _burn(msg.sender, _lpAmount);
         emit Burn(msg.sender, ERC1155Amount, ERC20Amount, _lpAmount);
