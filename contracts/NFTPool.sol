@@ -13,6 +13,7 @@ contract NFTPool is ERC20, ERC1155Holder {
     IERC20 public immutable ERC20Token;
     IERC1155 public immutable ERC1155Token;
     uint256 public immutable ERC1155ID;
+    uint256 public constant FEE_MULTIPLIER = 997;
 
     // --- EIP712 for Permit  ---
     bytes32 public immutable DOMAIN_SEPARATOR;
@@ -225,32 +226,55 @@ contract NFTPool is ERC20, ERC1155Holder {
         ERC20Reserve = ERC20Token.balanceOf(address(this));
     }
 
+    // fee deducted in ERC20
     function getPriceERC1155toERC20(uint256 _ERC1155Amount)
         public
         view
         returns (uint256 ERC20Bought)
     {
         (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
-        ERC20Bought = price(_ERC1155Amount, ERC1155Reserve, ERC20Reserve);
+        ERC20Bought = calculateOutputAmount_OutputFee(
+            _ERC1155Amount,
+            ERC1155Reserve,
+            ERC20Reserve
+        );
     }
 
+    // fee deducted in ERC20
     function getPriceERC20toERC1155(uint256 _ERC20Amount)
         public
         view
         returns (uint256 ERC1155Bought)
     {
         (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
-        ERC1155Bought = price(_ERC20Amount, ERC20Reserve, ERC1155Reserve);
+        ERC1155Bought = calculateOutputAmount_InputFee(
+            _ERC20Amount,
+            ERC20Reserve,
+            ERC1155Reserve
+        );
     }
 
-    function price(
+    // fee deducted in InputToken
+    function calculateOutputAmount_InputFee(
         uint256 inputAmount,
         uint256 inputReserve,
         uint256 outputReserve
     ) public pure returns (uint256) {
-        uint256 inputAmountWithFee = inputAmount * 997;
+        uint256 inputAmountWithFee = inputAmount * FEE_MULTIPLIER;
         uint256 numerator = inputAmountWithFee * outputReserve;
         uint256 denominator = inputReserve * 1000 + inputAmountWithFee;
+
+        return numerator / denominator;
+    }
+
+    // fee deducted in OutputToken
+    function calculateOutputAmount_OutputFee(
+        uint256 inputAmount,
+        uint256 inputReserve,
+        uint256 outputReserve
+    ) public pure returns (uint256) {
+        uint256 numerator = (inputAmount * outputReserve) * FEE_MULTIPLIER;
+        uint256 denominator = (inputReserve + inputAmount) * 1000;
 
         return numerator / denominator;
     }
