@@ -18,7 +18,7 @@ contract Exchange is ERC20, ERC1155Holder {
         IERC20 _stable,
         IERC1155 _ERC1155NFT,
         uint256 _nftID
-    ) ERC20("NFPE LP", "NFLP") {
+    ) ERC20("NFTPool LP", "NFTLP") {
         require(
             address(_stable) != address(0) &&
                 address(_ERC1155NFT) != address(0),
@@ -32,29 +32,29 @@ contract Exchange is ERC20, ERC1155Holder {
 
     function addLiquidity(uint256 nftAmt, uint256 maxStableAmt)
         external
-        returns (uint256 lp_minted)
+        returns (uint256 lpMinted)
     {
         if (totalSupply() == 0) {
             nft.safeTransferFrom(msg.sender, address(this), nftID, nftAmt, "");
             stable.safeTransferFrom(msg.sender, address(this), maxStableAmt);
 
-            lp_minted = maxStableAmt;
+            lpMinted = maxStableAmt;
         } else {
             (uint256 nft_reserve, uint256 stable_reserve) = getReserves();
 
             uint256 stable_amount = (nftAmt * stable_reserve) / nft_reserve + 1;
             require(
                 stable_amount <= maxStableAmt,
-                "Insufficient Stable Provided"
+                "Insufficient Stable Amount"
             );
 
             nft.safeTransferFrom(msg.sender, address(this), nftID, nftAmt, "");
             stable.safeTransferFrom(msg.sender, address(this), stable_amount);
 
-            lp_minted = (nftAmt * totalSupply()) / nft_reserve;
+            lpMinted = (nftAmt * totalSupply()) / nft_reserve;
         }
 
-        _mint(msg.sender, lp_minted);
+        _mint(msg.sender, lpMinted);
     }
 
     function removeLiquidity(uint256 lpAmt)
