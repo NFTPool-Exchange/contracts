@@ -40,18 +40,15 @@ contract Exchange is ERC20, ERC1155Holder {
 
             lpMinted = maxStableAmt;
         } else {
-            (uint256 nft_reserve, uint256 stable_reserve) = getReserves();
+            (uint256 nftReserve, uint256 stableReserve) = getReserves();
 
-            uint256 stable_amount = (nftAmt * stable_reserve) / nft_reserve + 1;
-            require(
-                stable_amount <= maxStableAmt,
-                "Insufficient Stable Amount"
-            );
+            uint256 stableAmount = (nftAmt * stableReserve) / nftReserve + 1;
+            require(stableAmount <= maxStableAmt, "Insufficient Stable Amount");
 
             nft.safeTransferFrom(msg.sender, address(this), nftID, nftAmt, "");
-            stable.safeTransferFrom(msg.sender, address(this), stable_amount);
+            stable.safeTransferFrom(msg.sender, address(this), stableAmount);
 
-            lpMinted = (nftAmt * totalSupply()) / nft_reserve;
+            lpMinted = (nftAmt * totalSupply()) / nftReserve;
         }
 
         _mint(msg.sender, lpMinted);
@@ -59,76 +56,76 @@ contract Exchange is ERC20, ERC1155Holder {
 
     function removeLiquidity(uint256 lpAmt)
         external
-        returns (uint256 nft_amount, uint256 stable_amount)
+        returns (uint256 nftAmount, uint256 stableAmount)
     {
-        (uint256 nft_reserve, uint256 stable_reserve) = getReserves();
+        (uint256 nftReserve, uint256 stableReserve) = getReserves();
 
-        nft_amount = (lpAmt * nft_reserve) / totalSupply();
-        stable_amount = (lpAmt * stable_reserve) / totalSupply();
+        nftAmount = (lpAmt * nftReserve) / totalSupply();
+        stableAmount = (lpAmt * stableReserve) / totalSupply();
 
         _burn(msg.sender, lpAmt);
 
-        nft.safeTransferFrom(address(this), msg.sender, nftID, nft_amount, "");
-        stable.safeTransferFrom(address(this), msg.sender, stable_amount);
+        nft.safeTransferFrom(address(this), msg.sender, nftID, nftAmount, "");
+        stable.safeTransferFrom(address(this), msg.sender, stableAmount);
     }
 
     function nftToStable(uint256 nftAmt)
         public
-        returns (uint256 stables_bought)
+        returns (uint256 stablesBought)
     {
         nft.safeTransferFrom(msg.sender, address(this), nftID, nftAmt, "");
 
-        stables_bought = getPriceNftToStable(nftAmt);
+        stablesBought = getPriceNftToStable(nftAmt);
 
-        stable.safeTransfer(msg.sender, stables_bought);
+        stable.safeTransfer(msg.sender, stablesBought);
     }
 
     function stableToNft(uint256 stableAmt)
         public
-        returns (uint256 nfts_bought)
+        returns (uint256 nftsBought)
     {
         stable.safeTransferFrom(msg.sender, address(this), stableAmt);
 
-        nfts_bought = getPriceStableToNft(stableAmt);
+        nftsBought = getPriceStableToNft(stableAmt);
 
-        nft.safeTransferFrom(address(this), msg.sender, nftID, nfts_bought, "");
+        nft.safeTransferFrom(address(this), msg.sender, nftID, nftsBought, "");
     }
 
     function getReserves()
         public
         view
-        returns (uint256 nft_reserve, uint256 stable_reserve)
+        returns (uint256 nftReserve, uint256 stableReserve)
     {
-        nft_reserve = nft.balanceOf(address(this), nftID);
-        stable_reserve = stable.balanceOf(address(this));
+        nftReserve = nft.balanceOf(address(this), nftID);
+        stableReserve = stable.balanceOf(address(this));
     }
 
     function getPriceNftToStable(uint256 nftAmt)
         public
         view
-        returns (uint256 stables_bought)
+        returns (uint256 stablesBought)
     {
-        (uint256 nft_reserve, uint256 stable_reserve) = getReserves();
-        stables_bought = price(nftAmt, nft_reserve, stable_reserve);
+        (uint256 nftReserve, uint256 stableReserve) = getReserves();
+        stablesBought = price(nftAmt, nftReserve, stableReserve);
     }
 
     function getPriceStableToNft(uint256 stableAmt)
         public
         view
-        returns (uint256 nfts_bought)
+        returns (uint256 nftsBought)
     {
-        (uint256 nft_reserve, uint256 stable_reserve) = getReserves();
-        nfts_bought = price(stableAmt, stable_reserve, nft_reserve);
+        (uint256 nftReserve, uint256 stableReserve) = getReserves();
+        nftsBought = price(stableAmt, stableReserve, nftReserve);
     }
 
     function price(
-        uint256 input_amount,
-        uint256 input_reserve,
-        uint256 output_reserve
+        uint256 inputAmount,
+        uint256 inputReserve,
+        uint256 outputReserve
     ) public pure returns (uint256) {
-        uint256 input_amount_with_fee = input_amount * 997;
-        uint256 numerator = input_amount_with_fee * output_reserve;
-        uint256 denominator = input_reserve * 1000 + input_amount_with_fee;
+        uint256 inputAmountWithFee = inputAmount * 997;
+        uint256 numerator = inputAmountWithFee * outputReserve;
+        uint256 denominator = inputReserve * 1000 + inputAmountWithFee;
 
         return numerator / denominator;
     }
