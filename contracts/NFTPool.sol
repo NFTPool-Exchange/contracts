@@ -87,7 +87,7 @@ contract NFTPool is ERC20, ERC1155Holder {
         bytes32 r,
         bytes32 s
     ) external {
-        require(deadline >= block.timestamp, "NFTLP: EXPIRED");
+        require(deadline >= block.timestamp, "NFTP: EXPIRED");
         bytes32 digest = keccak256(
             abi.encodePacked(
                 "\x19\x01",
@@ -107,7 +107,7 @@ contract NFTPool is ERC20, ERC1155Holder {
         address recoveredAddress = ecrecover(digest, v, r, s);
         require(
             recoveredAddress != address(0) && recoveredAddress == owner,
-            "NFTLP: INVALID_SIGNATURE"
+            "NFTP: INVALID_SIGNATURE"
         );
         _approve(owner, spender, value);
     }
@@ -140,7 +140,7 @@ contract NFTPool is ERC20, ERC1155Holder {
                 1;
             require(
                 ERC20Amount <= _maxERC20Amount,
-                "Insufficient ERC20 Amount"
+                "NFTP: Insufficient ERC20 Amount"
             );
 
             ERC1155Token.safeTransferFrom(
@@ -181,11 +181,15 @@ contract NFTPool is ERC20, ERC1155Holder {
         ERC20Token.safeTransferFrom(address(this), msg.sender, ERC20Amount);
     }
 
-    function ERC1155ToERC20(uint256 _ERC1155Amount)
-        public
-        returns (uint256 ERC20Bought)
-    {
+    function ERC1155ToERC20(
+        uint256 _ERC1155Amount,
+        uint256 _minERC20,
+        uint256 _deadline
+    ) public returns (uint256 ERC20Bought) {
+        require(_deadline >= block.timestamp, "NFTP: EXPIRED");
+
         ERC20Bought = getPriceERC1155toERC20(_ERC1155Amount);
+        require(ERC20Bought >= _minERC20, "NFTP: Slippage");
 
         ERC1155Token.safeTransferFrom(
             msg.sender,
@@ -199,11 +203,15 @@ contract NFTPool is ERC20, ERC1155Holder {
         emit SwapERC1155ToERC20(msg.sender, _ERC1155Amount, ERC20Bought);
     }
 
-    function ERC20toERC1155(uint256 _ERC20Amount)
-        public
-        returns (uint256 ERC1155Bought)
-    {
+    function ERC20toERC1155(
+        uint256 _ERC20Amount,
+        uint256 _minERC1155,
+        uint256 _deadline
+    ) public returns (uint256 ERC1155Bought) {
+        require(_deadline >= block.timestamp, "NFTP: EXPIRED");
+
         ERC1155Bought = getPriceERC20toERC1155(_ERC20Amount);
+        require(ERC1155Bought >= _minERC1155, "NFTP: Slippage");
 
         ERC20Token.safeTransferFrom(msg.sender, address(this), _ERC20Amount);
         ERC1155Token.safeTransferFrom(
