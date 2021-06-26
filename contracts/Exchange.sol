@@ -73,10 +73,9 @@ contract Exchange is ERC20, ERC1155Holder {
         public
         returns (uint256 stablesBought)
     {
-        nft.safeTransferFrom(msg.sender, address(this), nftID, nftAmt, "");
-
         stablesBought = getPriceNftToStable(nftAmt);
 
+        nft.safeTransferFrom(msg.sender, address(this), nftID, nftAmt, "");
         stable.safeTransfer(msg.sender, stablesBought);
     }
 
@@ -84,10 +83,9 @@ contract Exchange is ERC20, ERC1155Holder {
         public
         returns (uint256 nftsBought)
     {
-        stable.safeTransferFrom(msg.sender, address(this), stableAmt);
-
         nftsBought = getPriceStableToNft(stableAmt);
 
+        stable.safeTransferFrom(msg.sender, address(this), stableAmt);
         nft.safeTransferFrom(address(this), msg.sender, nftID, nftsBought, "");
     }
 
