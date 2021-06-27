@@ -200,7 +200,7 @@ contract NFTPool is ERC20, ERC1155Holder {
         ERC20Token.safeTransfer(msg.sender, ERC20Amount);
     }
 
-    function ERC1155ToERC20(
+    function SwapExactERC1155ToERC20(
         uint256 _ERC1155Amount,
         uint256 _minERC20,
         uint256 _deadline
@@ -222,27 +222,27 @@ contract NFTPool is ERC20, ERC1155Holder {
         emit SwapERC1155ToERC20(msg.sender, _ERC1155Amount, ERC20Bought);
     }
 
-    function ERC20toERC1155(
-        uint256 _ERC20Amount,
-        uint256 _minERC1155,
+    function SwapERC20toERC1155Exact(
+        uint256 _maxERC20,
+        uint256 _ERC1155Amount,
         uint256 _deadline
-    ) public returns (uint256 ERC1155Bought) {
+    ) public returns (uint256 ERC20Sold) {
         require(_deadline >= block.timestamp, "NFTP: EXPIRED");
+        require(_ERC1155Amount > 0, "NFTP: Zero NFTs Requested");
 
-        ERC1155Bought = getPriceERC20toERC1155(_ERC20Amount);
-        require(ERC1155Bought > 0, "NFTP: Zero NFTs Received");
-        require(ERC1155Bought >= _minERC1155, "NFTP: Slippage");
+        ERC20Sold = getPriceERC20toERC1155Exact(_ERC1155Amount);
+        require(ERC20Sold <= _maxERC20, "NFTP: Slippage");
 
-        ERC20Token.safeTransferFrom(msg.sender, address(this), _ERC20Amount);
+        ERC20Token.safeTransferFrom(msg.sender, address(this), ERC20Sold);
         ERC1155Token.safeTransferFrom(
             address(this),
             msg.sender,
             ERC1155ID,
-            ERC1155Bought,
+            _ERC1155Amount,
             ""
         );
 
-        emit SwapERC20ToERC1155(msg.sender, _ERC20Amount, ERC1155Bought);
+        emit SwapERC20ToERC1155(msg.sender, ERC20Sold, _ERC1155Amount);
     }
 
     function getReserves()
@@ -269,30 +269,17 @@ contract NFTPool is ERC20, ERC1155Holder {
     }
 
     // fee deducted in ERC20
-    function getPriceERC20toERC1155(uint256 _ERC20Amount)
+    function getPriceERC20toERC1155Exact(uint256 _ERC1155Amount)
         public
         view
-        returns (uint256 ERC1155Bought)
+        returns (uint256 ERC20Required)
     {
         (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
-        ERC1155Bought = calculateOutputAmount_InputFee(
-            _ERC20Amount,
+        ERC20Required = calculateInputAmount_InputFee(
+            _ERC1155Amount,
             ERC20Reserve,
             ERC1155Reserve
         );
-    }
-
-    // fee deducted in InputToken
-    function calculateOutputAmount_InputFee(
-        uint256 inputAmount,
-        uint256 inputReserve,
-        uint256 outputReserve
-    ) public pure returns (uint256) {
-        uint256 inputAmountWithFee = inputAmount * FEE_MULTIPLIER;
-        uint256 numerator = inputAmountWithFee * outputReserve;
-        uint256 denominator = inputReserve * 1000 + inputAmountWithFee;
-
-        return numerator / denominator;
     }
 
     // fee deducted in OutputToken
@@ -304,7 +291,19 @@ contract NFTPool is ERC20, ERC1155Holder {
         uint256 numerator = (inputAmount * outputReserve) * FEE_MULTIPLIER;
         uint256 denominator = (inputReserve + inputAmount) * 1000;
 
-        return numerator / denominator;
+        return numerator / denominator; // rounding error will favour NFTPool
+    }
+
+    // fee deducted in InputToken
+    function calculateInputAmount_InputFee(
+        uint256 outputAmount,
+        uint256 inputReserve,
+        uint256 outputReserve
+    ) public pure returns (uint256 price) {
+        uint256 numerator = (inputReserve * outputAmount) * 1000;
+        uint256 denominator = (outputReserve - outputAmount) * FEE_MULTIPLIER;
+
+        (price, ) = divRound(numerator, denominator);
     }
 
     /**

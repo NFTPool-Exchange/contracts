@@ -234,7 +234,7 @@ describe("NFTPool", () => {
     });
   });
 
-  describe("ERC1155ToERC20", () => {
+  describe("SwapExactERC1155ToERC20", () => {
     before(async () => {
       await reset();
 
@@ -262,7 +262,9 @@ describe("NFTPool", () => {
       const preDAIBalance = await dai.balanceOf(user.address);
 
       await expect(
-        nftPool.connect(user).ERC1155ToERC20(ERC1155AmountToSwap, 0, MaxUint256)
+        nftPool
+          .connect(user)
+          .SwapExactERC1155ToERC20(ERC1155AmountToSwap, 0, MaxUint256)
       )
         .to.emit(nftPool, "SwapERC1155ToERC20")
         .withArgs(user.address, ERC1155AmountToSwap, expectedDAIReceived);
@@ -270,12 +272,15 @@ describe("NFTPool", () => {
       const postNFTBalance = await nft.balanceOf(user.address, nftID);
       const postDAIBalance = await dai.balanceOf(user.address);
 
+      console.log("NFT Spent: ", preNFTBalance.sub(postNFTBalance).toString());
+      console.log("DAI Bought: ", toDecimal(postDAIBalance.sub(preDAIBalance)));
+
       expect(preNFTBalance.sub(postNFTBalance)).to.eq(ERC1155AmountToSwap);
       expect(postDAIBalance.sub(preDAIBalance)).to.eq(expectedDAIReceived);
     });
   });
 
-  describe("ERC20toERC1155", () => {
+  describe("SwapERC20toERC1155Exact", () => {
     beforeEach(async () => {
       await reset();
 
@@ -294,19 +299,26 @@ describe("NFTPool", () => {
 
     it("should swap DAI to NFT by swapper0", async () => {
       const user = swapper0;
-      const ERC20AmountToSwap = parseEther("1100");
-      const expectedNFTReceived = 1;
+      const maxERC20AmountToSwap = parseEther("1500");
+      const ERC1155AmountToBuy = 1;
+      const expectedDAIToSwap = parseEther("1005.019065211667065325");
 
-      await dai.connect(user).approve(nftPool.address, MaxUint256);
+      await dai.connect(user).approve(nftPool.address, maxERC20AmountToSwap);
 
       const preNFTBalance = await nft.balanceOf(user.address, nftID);
       const preDAIBalance = await dai.balanceOf(user.address);
 
       await expect(
-        nftPool.connect(user).ERC20toERC1155(ERC20AmountToSwap, 0, MaxUint256)
+        nftPool
+          .connect(user)
+          .SwapERC20toERC1155Exact(
+            maxERC20AmountToSwap,
+            ERC1155AmountToBuy,
+            MaxUint256
+          )
       )
         .to.emit(nftPool, "SwapERC20ToERC1155")
-        .withArgs(user.address, ERC20AmountToSwap, expectedNFTReceived);
+        .withArgs(user.address, expectedDAIToSwap, ERC1155AmountToBuy);
 
       const postNFTBalance = await nft.balanceOf(user.address, nftID);
       const postDAIBalance = await dai.balanceOf(user.address);
@@ -314,37 +326,11 @@ describe("NFTPool", () => {
       console.log("DAI Spent: ", toDecimal(preDAIBalance.sub(postDAIBalance)));
       console.log("NFT Bought: ", postNFTBalance.sub(preNFTBalance).toString());
 
-      expect(postNFTBalance.sub(preNFTBalance)).to.eq(expectedNFTReceived);
-      expect(preDAIBalance.sub(postDAIBalance)).to.eq(ERC20AmountToSwap);
+      expect(postNFTBalance.sub(preNFTBalance)).to.eq(ERC1155AmountToBuy);
+      expect(preDAIBalance.sub(postDAIBalance)).to.eq(expectedDAIToSwap);
     });
 
-    it("should swap DAI to NFT by swapper0", async () => {
-      const user = swapper0;
-      const ERC20AmountToSwap = parseEther("2000");
-      const expectedNFTReceived = 1;
-
-      await dai.connect(user).approve(nftPool.address, MaxUint256);
-
-      const preNFTBalance = await nft.balanceOf(user.address, nftID);
-      const preDAIBalance = await dai.balanceOf(user.address);
-
-      await expect(
-        nftPool.connect(user).ERC20toERC1155(ERC20AmountToSwap, 0, MaxUint256)
-      )
-        .to.emit(nftPool, "SwapERC20ToERC1155")
-        .withArgs(user.address, ERC20AmountToSwap, expectedNFTReceived);
-
-      const postNFTBalance = await nft.balanceOf(user.address, nftID);
-      const postDAIBalance = await dai.balanceOf(user.address);
-
-      console.log("DAI Spent: ", toDecimal(preDAIBalance.sub(postDAIBalance)));
-      console.log("NFT Bought: ", postNFTBalance.sub(preNFTBalance).toString());
-
-      expect(postNFTBalance.sub(preNFTBalance)).to.eq(expectedNFTReceived);
-      expect(preDAIBalance.sub(postDAIBalance)).to.eq(ERC20AmountToSwap);
-    });
-
-    it("should Revert if 0 NFT Received in Exchange", async () => {
+    it("should Revert if 0 NFT input for Exchange", async () => {
       const user = swapper0;
       const ERC20AmountToSwap = parseEther("100");
 
@@ -353,8 +339,10 @@ describe("NFTPool", () => {
       // Without this check, the user's DAI was getting spent,
       // and they didn't even receive any NFT in return!
       await expect(
-        nftPool.connect(user).ERC20toERC1155(ERC20AmountToSwap, 0, MaxUint256)
-      ).to.revertedWith("NFTP: Zero NFTs Received");
+        nftPool
+          .connect(user)
+          .SwapERC20toERC1155Exact(ERC20AmountToSwap, 0, MaxUint256)
+      ).to.revertedWith("NFTP: Zero NFTs Requested");
     });
   });
 });
