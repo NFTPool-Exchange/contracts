@@ -197,7 +197,7 @@ contract NFTPool is ERC20, ERC1155Holder {
             ERC1155Amount,
             ""
         );
-        ERC20Token.safeTransferFrom(address(this), msg.sender, ERC20Amount);
+        ERC20Token.safeTransfer(msg.sender, ERC20Amount);
     }
 
     function ERC1155ToERC20(
@@ -230,6 +230,7 @@ contract NFTPool is ERC20, ERC1155Holder {
         require(_deadline >= block.timestamp, "NFTP: EXPIRED");
 
         ERC1155Bought = getPriceERC20toERC1155(_ERC20Amount);
+        require(ERC1155Bought > 0, "NFTP: Zero NFTs Received");
         require(ERC1155Bought >= _minERC1155, "NFTP: Slippage");
 
         ERC20Token.safeTransferFrom(msg.sender, address(this), _ERC20Amount);
