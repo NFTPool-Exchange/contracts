@@ -138,9 +138,10 @@ contract NFTPool is ERC20, ERC1155Holder {
         } else {
             (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
 
-            uint256 ERC20Amount = (_ERC1155Amount * ERC20Reserve) /
-                ERC1155Reserve +
-                1;
+            (uint256 ERC20Amount, bool rounded) = divRound(
+                _ERC1155Amount * ERC20Reserve,
+                ERC1155Reserve
+            );
             require(
                 ERC20Amount <= _maxERC20Amount,
                 "NFTP: Insufficient ERC20 Amount"
@@ -155,7 +156,12 @@ contract NFTPool is ERC20, ERC1155Holder {
             );
             ERC20Token.safeTransferFrom(msg.sender, address(this), ERC20Amount);
 
-            lpMinted = (_ERC1155Amount * totalSupply()) / ERC1155Reserve;
+            // Proportion of the liquidity pool to give to current liquidity provider
+            // If rounding error occured, round down to favor previous liquidity providers
+            // See https://github.com/0xsequence/niftyswap/issues/19
+            lpMinted =
+                ((_ERC1155Amount - (rounded ? 1 : 0)) * totalSupply()) /
+                ERC1155Reserve;
             emit Mint(msg.sender, _ERC1155Amount, ERC20Amount, lpMinted);
         }
 
@@ -298,5 +304,18 @@ contract NFTPool is ERC20, ERC1155Holder {
         uint256 denominator = (inputReserve + inputAmount) * 1000;
 
         return numerator / denominator;
+    }
+
+    /**
+     * @notice Divides two numbers and add 1 if there is a rounding error
+     * @param a Numerator
+     * @param b Denominator
+     */
+    function divRound(uint256 a, uint256 b)
+        internal
+        pure
+        returns (uint256, bool)
+    {
+        return a % b == 0 ? (a / b, false) : ((a / b) + 1, true);
     }
 }
