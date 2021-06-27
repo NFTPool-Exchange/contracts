@@ -6,21 +6,22 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import "./interfaces/INFTPool.sol";
 
-contract NFTPool is ERC20, ERC1155Holder {
+contract NFTPool is INFTPool, ERC20, ERC1155Holder {
     using SafeERC20 for IERC20;
 
-    IERC20 public immutable ERC20Token;
-    IERC1155 public immutable ERC1155Token;
-    uint256 public immutable ERC1155ID;
-    uint256 public constant FEE_MULTIPLIER = 997;
+    IERC20 public immutable override ERC20Token;
+    IERC1155 public immutable override ERC1155Token;
+    uint256 public immutable override ERC1155ID;
+    uint256 public constant override FEE_MULTIPLIER = 997;
 
     // --- EIP712 for Permit  ---
-    bytes32 public immutable DOMAIN_SEPARATOR;
+    bytes32 public immutable override DOMAIN_SEPARATOR;
     // PERMIT_TYPEHASH = keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
-    bytes32 public constant PERMIT_TYPEHASH =
+    bytes32 public constant override PERMIT_TYPEHASH =
         0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9;
-    mapping(address => uint256) public nonces;
+    mapping(address => uint256) public override nonces;
 
     event Mint(
         address indexed sender,
@@ -86,7 +87,7 @@ contract NFTPool is ERC20, ERC1155Holder {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external {
+    ) external override {
         require(deadline >= block.timestamp, "NFTP: EXPIRED");
         bytes32 digest = keccak256(
             abi.encodePacked(
@@ -116,7 +117,7 @@ contract NFTPool is ERC20, ERC1155Holder {
         uint256 _ERC1155Amount,
         uint256 _maxERC20Amount,
         uint256 _deadline
-    ) external returns (uint256 lpMinted) {
+    ) external override returns (uint256 lpMinted) {
         require(_deadline >= block.timestamp, "NFTP: EXPIRED");
 
         if (totalSupply() == 0) {
@@ -173,7 +174,7 @@ contract NFTPool is ERC20, ERC1155Holder {
         uint256 _minERC1155,
         uint256 _minERC20,
         uint256 _deadline
-    ) external returns (uint256 ERC1155Amount, uint256 ERC20Amount) {
+    ) external override returns (uint256 ERC1155Amount, uint256 ERC20Amount) {
         require(_deadline >= block.timestamp, "NFTP: EXPIRED");
 
         (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
@@ -204,7 +205,7 @@ contract NFTPool is ERC20, ERC1155Holder {
         uint256 _ERC1155Amount,
         uint256 _minERC20,
         uint256 _deadline
-    ) public returns (uint256 ERC20Bought) {
+    ) public override returns (uint256 ERC20Bought) {
         require(_deadline >= block.timestamp, "NFTP: EXPIRED");
 
         ERC20Bought = getPriceERC1155toERC20(_ERC1155Amount);
@@ -226,7 +227,7 @@ contract NFTPool is ERC20, ERC1155Holder {
         uint256 _maxERC20,
         uint256 _ERC1155Amount,
         uint256 _deadline
-    ) public returns (uint256 ERC20Sold) {
+    ) public override returns (uint256 ERC20Sold) {
         require(_deadline >= block.timestamp, "NFTP: EXPIRED");
         require(_ERC1155Amount > 0, "NFTP: Zero NFTs Requested");
 
@@ -248,6 +249,7 @@ contract NFTPool is ERC20, ERC1155Holder {
     function getReserves()
         public
         view
+        override
         returns (uint256 ERC1155Reserve, uint256 ERC20Reserve)
     {
         ERC1155Reserve = ERC1155Token.balanceOf(address(this), ERC1155ID);
@@ -258,6 +260,7 @@ contract NFTPool is ERC20, ERC1155Holder {
     function getPriceERC1155toERC20(uint256 _ERC1155Amount)
         public
         view
+        override
         returns (uint256 ERC20Bought)
     {
         (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
@@ -272,6 +275,7 @@ contract NFTPool is ERC20, ERC1155Holder {
     function getPriceERC20toERC1155Exact(uint256 _ERC1155Amount)
         public
         view
+        override
         returns (uint256 ERC20Required)
     {
         (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
@@ -287,7 +291,7 @@ contract NFTPool is ERC20, ERC1155Holder {
         uint256 inputAmount,
         uint256 inputReserve,
         uint256 outputReserve
-    ) public pure returns (uint256) {
+    ) public pure override returns (uint256) {
         uint256 numerator = (inputAmount * outputReserve) * FEE_MULTIPLIER;
         uint256 denominator = (inputReserve + inputAmount) * 1000;
 
@@ -299,7 +303,7 @@ contract NFTPool is ERC20, ERC1155Holder {
         uint256 outputAmount,
         uint256 inputReserve,
         uint256 outputReserve
-    ) public pure returns (uint256 price) {
+    ) public pure override returns (uint256 price) {
         uint256 numerator = (inputReserve * outputAmount) * 1000;
         uint256 denominator = (outputReserve - outputAmount) * FEE_MULTIPLIER;
 
