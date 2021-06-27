@@ -1,2 +1,7 @@
-node_modules
+abi
+artifacts
+cache
 build
+typechain
+
+node_modules
