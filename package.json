@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "compile": "yarn hardhat compile",
-    "clean": "yarn hardhat clean",
-    "test": "yarn hardhat test"
+    "compile": "hardhat compile",
+    "clean": "hardhat clean",
+    "test": "hardhat test"
   },
   "repository": {
     "type": "git",
