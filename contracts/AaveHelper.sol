@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: NONE
+// SPDX-License-Identifier: GPL-2.0
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -7,48 +7,33 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {INFTPool} from "./interfaces/INFTPool.sol";
 
-interface IAaveLendingPoolAddressesProvider {
-    function getLendingPool() external view returns (address);
+interface IAToken {
+    function POOL() external returns (address);
 
-    function getLendingPoolCore() external view returns (address payable);
-}
-
-interface IAaveLendingPoolCore {
-    function getReserveATokenAddress(address _reserve)
-        external
-        view
-        returns (address);
+    function UNDERLYING_ASSET_ADDRESS() external returns (address);
 }
 
 interface IAaveLendingPool {
     function deposit(
-        address _reserve,
-        uint256 _amount,
-        uint16 _referralCode
-    ) external payable;
+        address asset,
+        uint256 amount,
+        address onBehalfOf,
+        uint16 referralCode
+    ) external;
 }
 
 contract AaveHelper is ERC1155Holder {
     using SafeERC20 for IERC20;
 
     // KOVAN
-    IAaveLendingPoolAddressesProvider
-        public constant lendingPoolAddressProvider =
-        IAaveLendingPoolAddressesProvider(
-            0x88757f2f99175387aB4C6a4b3067c77A695b0349
-        );
     IERC20 public constant DAI =
         IERC20(0xFf795577d9AC8bD7D90Ee22b6C1703490b6512FD);
-    address public aaveLendingPoolCore;
+    address public aaveLendingPool;
     IERC20 public immutable aDAI;
 
-    constructor() {
-        aaveLendingPoolCore = lendingPoolAddressProvider.getLendingPoolCore();
-        aDAI = IERC20(
-            IAaveLendingPoolCore(aaveLendingPoolCore).getReserveATokenAddress(
-                address(DAI)
-            )
-        );
+    constructor(address _aDAI) {
+        aDAI = IERC20(_aDAI);
+        aaveLendingPool = IAToken(_aDAI).POOL();
     }
 
     function addLiquidityWithDAI(
@@ -71,12 +56,13 @@ contract AaveHelper is ERC1155Holder {
         );
 
         // convert DAI to aDAI
-        DAI.safeApprove(aaveLendingPoolCore, 0);
-        DAI.safeApprove(aaveLendingPoolCore, _maxERC20Amount);
+        DAI.safeApprove(aaveLendingPool, 0);
+        DAI.safeApprove(aaveLendingPool, _maxERC20Amount);
 
-        IAaveLendingPool(lendingPoolAddressProvider.getLendingPool()).deposit(
+        IAaveLendingPool(aaveLendingPool).deposit(
             address(DAI),
             _maxERC20Amount,
+            address(this),
             0
         );
 
