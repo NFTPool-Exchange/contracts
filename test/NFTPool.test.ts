@@ -234,7 +234,7 @@ describe("NFTPool", () => {
     });
   });
 
-  describe("SwapExactERC1155ToERC20", () => {
+  describe("swapExactERC1155ToERC20", () => {
     before(async () => {
       await reset();
 
@@ -264,7 +264,7 @@ describe("NFTPool", () => {
       await expect(
         nftPool
           .connect(user)
-          .SwapExactERC1155ToERC20(ERC1155AmountToSwap, 0, MaxUint256)
+          .swapExactERC1155ToERC20(ERC1155AmountToSwap, 0, MaxUint256)
       )
         .to.emit(nftPool, "SwapERC1155ToERC20")
         .withArgs(user.address, ERC1155AmountToSwap, expectedDAIReceived);
@@ -280,7 +280,7 @@ describe("NFTPool", () => {
     });
   });
 
-  describe("SwapERC20toERC1155Exact", () => {
+  describe("swapERC20toERC1155Exact", () => {
     beforeEach(async () => {
       await reset();
 
@@ -311,7 +311,7 @@ describe("NFTPool", () => {
       await expect(
         nftPool
           .connect(user)
-          .SwapERC20toERC1155Exact(
+          .swapERC20toERC1155Exact(
             maxERC20AmountToSwap,
             ERC1155AmountToBuy,
             MaxUint256
@@ -341,7 +341,7 @@ describe("NFTPool", () => {
       await expect(
         nftPool
           .connect(user)
-          .SwapERC20toERC1155Exact(ERC20AmountToSwap, 0, MaxUint256)
+          .swapERC20toERC1155Exact(ERC20AmountToSwap, 0, MaxUint256)
       ).to.revertedWith("NFTP: Zero NFTs Requested");
     });
   });

@@ -200,7 +200,7 @@ contract NFTPool is INFTPool, ERC20, ERC1155Holder {
         ERC20Token.safeTransfer(msg.sender, ERC20Amount);
     }
 
-    function SwapExactERC1155ToERC20(
+    function swapExactERC1155ToERC20(
         uint256 _ERC1155Amount,
         uint256 _minERC20,
         uint256 _deadline
@@ -222,7 +222,7 @@ contract NFTPool is INFTPool, ERC20, ERC1155Holder {
         emit SwapERC1155ToERC20(msg.sender, _ERC1155Amount, ERC20Bought);
     }
 
-    function SwapERC20toERC1155Exact(
+    function swapERC20toERC1155Exact(
         uint256 _maxERC20,
         uint256 _ERC1155Amount,
         uint256 _deadline
