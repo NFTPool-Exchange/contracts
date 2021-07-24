@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import { HardhatUserConfig } from "hardhat/types";
 
 import "@typechain/hardhat";
@@ -8,7 +10,6 @@ import "hardhat-deploy-ethers";
 import "hardhat-abi-exporter";
 
 const config: HardhatUserConfig = {
-  defaultNetwork: "hardhat",
   solidity: {
     version: "0.8.6",
     settings: {
@@ -16,6 +17,16 @@ const config: HardhatUserConfig = {
         enabled: true,
         runs: 200,
       },
+    },
+  },
+  namedAccounts: {
+    deployer: 0,
+  },
+  defaultNetwork: "hardhat",
+  networks: {
+    kovan: {
+      url: `https://kovan.infura.io/v3/${process.env.INFURA_ID}`,
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY!],
     },
   },
 };

@@ -5,7 +5,10 @@
   "scripts": {
     "compile": "hardhat compile",
     "clean": "hardhat clean",
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "deploy:default": "hardhat deploy",
+    "deploy:kovan": "hardhat deploy --network kovan",
+    "etherscan-verify:kovan": "hardhat --network kovan etherscan-verify"
   },
   "repository": {
     "type": "git",
@@ -28,6 +31,7 @@
     "@typechain/hardhat": "^2.1.0",
     "@types/mocha": "^8.2.2",
     "chai": "^4.3.4",
+    "dotenv": "^10.0.0",
     "ethereum-waffle": "^3.4.0",
     "hardhat": "^2.4.1",
     "hardhat-abi-exporter": "^2.2.1",

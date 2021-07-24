@@ -1,7 +1,11 @@
+# Hardhat
 abi
 artifacts
+bin
 cache
 build
 typechain
 
+# General Node
 node_modules
+.env
