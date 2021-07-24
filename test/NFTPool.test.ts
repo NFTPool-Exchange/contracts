@@ -152,7 +152,7 @@ describe("NFTPool", () => {
       const expectedERC20Amount = parseEther("500000"); // as price of 1 NFT = 1000 DAI
       const expectedLiquidity = parseEther("500000");
 
-      const fetchedERC20Amount = await nftPool.getAddLiquidityAmount(
+      const quotedERC20Amount = await nftPool.getAddLiquidityAmount(
         ERC1155Amount
       );
 
@@ -182,7 +182,7 @@ describe("NFTPool", () => {
       const lpReceived = await nftPool.balanceOf(user.address);
 
       expect(lpReceived).to.eq(expectedLiquidity);
-      expect(fetchedERC20Amount).to.eq(expectedERC20Amount);
+      expect(quotedERC20Amount).to.eq(expectedERC20Amount);
       expect(preDAIBalance.sub(postDAIBalance)).to.eq(expectedERC20Amount);
       expect(preNFTBalance.sub(postNFTBalance)).to.eq(ERC1155Amount);
     });
@@ -214,7 +214,7 @@ describe("NFTPool", () => {
       const expectedERC1155Amount = 500;
       const expectedERC20Amount = parseEther("500000");
 
-      const fetchedRemoveLiquidityAmounts =
+      const quotedRemoveLiquidityAmounts =
         await nftPool.getRemoveLiquidityAmounts(lpBalance);
 
       const preLpBalance = await nftPool.balanceOf(user.address);
@@ -237,10 +237,10 @@ describe("NFTPool", () => {
       const postNFTBalance = await nft.balanceOf(user.address, nftID);
 
       expect(preLpBalance.sub(postLpBalance)).to.eq(lpBalance);
-      expect(fetchedRemoveLiquidityAmounts.ERC20Amount).to.eq(
+      expect(quotedRemoveLiquidityAmounts.ERC20Amount).to.eq(
         expectedERC20Amount
       );
-      expect(fetchedRemoveLiquidityAmounts.ERC1155Amount).to.eq(ERC1155Amount);
+      expect(quotedRemoveLiquidityAmounts.ERC1155Amount).to.eq(ERC1155Amount);
       expect(postDAIBalance.sub(preDAIBalance)).to.eq(expectedERC20Amount);
       expect(postNFTBalance.sub(preNFTBalance)).to.eq(ERC1155Amount);
     });
