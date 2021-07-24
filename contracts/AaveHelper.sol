@@ -42,8 +42,18 @@ contract AaveHelper is ERC1155Holder {
         uint256 _maxERC20Amount,
         uint256 _deadline
     ) external returns (uint256 ERC20Amount, uint256 lpMinted) {
-        // get DAI from user
-        DAI.safeTransferFrom(msg.sender, address(this), _maxERC20Amount);
+        if (nftPool.totalSupply() == 0) {
+            ERC20Amount = _maxERC20Amount;
+        } else {
+            ERC20Amount = nftPool.getAddLiquidityAmount(_ERC1155Amount);
+            require(
+                ERC20Amount <= _maxERC20Amount,
+                "Helper: Insufficient ERC20 Amount"
+            );
+        }
+
+        // get required DAI amount from user
+        DAI.safeTransferFrom(msg.sender, address(this), ERC20Amount);
         // get ERC1155 from user
         IERC1155 erc1155Token = nftPool.ERC1155Token();
         uint256 erc1155ID = nftPool.ERC1155ID();
@@ -57,30 +67,27 @@ contract AaveHelper is ERC1155Holder {
 
         // convert DAI to aDAI
         DAI.safeApprove(aaveLendingPool, 0);
-        DAI.safeApprove(aaveLendingPool, _maxERC20Amount);
+        DAI.safeApprove(aaveLendingPool, ERC20Amount);
 
         IAaveLendingPool(aaveLendingPool).deposit(
             address(DAI),
-            _maxERC20Amount,
+            ERC20Amount,
             address(this),
             0
         );
 
         // addLiquidity to Pool
         aDAI.safeApprove(address(nftPool), 0);
-        aDAI.safeApprove(address(nftPool), _maxERC20Amount);
+        aDAI.safeApprove(address(nftPool), ERC20Amount);
         erc1155Token.setApprovalForAll(address(nftPool), true);
 
         (ERC20Amount, lpMinted) = nftPool.addLiquidity(
             _ERC1155Amount,
-            _maxERC20Amount,
+            ERC20Amount,
             _deadline
         );
 
-        // transfer residue back to user
-        uint256 residue = _maxERC20Amount - ERC20Amount;
-        if (residue > 0) {
-            aDAI.safeTransfer(msg.sender, residue);
-        }
+        // send LP tokens to user
+        nftPool.transfer(msg.sender, lpMinted);
     }
 }
