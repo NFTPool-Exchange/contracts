@@ -135,12 +135,10 @@ contract NFTPool is INFTPool, ERC20, ERC1155Holder {
             lpMinted = _maxERC20Amount;
             emit Mint(msg.sender, _ERC1155Amount, _maxERC20Amount, lpMinted);
         } else {
-            (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
-
             bool rounded;
-            (ERC20Amount, rounded) = divRound(
-                _ERC1155Amount * ERC20Reserve,
-                ERC1155Reserve
+            uint256 ERC1155Reserve;
+            (ERC20Amount, rounded, ERC1155Reserve) = _getAddLiquidityAmount(
+                _ERC1155Amount
             );
             require(
                 ERC20Amount <= _maxERC20Amount,
@@ -176,11 +174,7 @@ contract NFTPool is INFTPool, ERC20, ERC1155Holder {
     ) external override returns (uint256 ERC1155Amount, uint256 ERC20Amount) {
         require(_deadline >= block.timestamp, "NFTP: EXPIRED");
 
-        (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
-
-        ERC1155Amount = (_lpAmount * ERC1155Reserve) / totalSupply();
-        ERC20Amount = (_lpAmount * ERC20Reserve) / totalSupply();
-
+        (ERC1155Amount, ERC20Amount) = getRemoveLiquidityAmounts(_lpAmount);
         require(
             ERC1155Amount >= _minERC1155,
             "NFTP: Insufficient ERC1155 Amount"
@@ -198,6 +192,45 @@ contract NFTPool is INFTPool, ERC20, ERC1155Holder {
             ""
         );
         ERC20Token.safeTransfer(msg.sender, ERC20Amount);
+    }
+
+    function getAddLiquidityAmount(uint256 _ERC1155Amount)
+        external
+        view
+        override
+        returns (uint256 ERC20Amount)
+    {
+        (ERC20Amount, , ) = _getAddLiquidityAmount(_ERC1155Amount);
+    }
+
+    function getRemoveLiquidityAmounts(uint256 _lpAmount)
+        public
+        view
+        override
+        returns (uint256 ERC1155Amount, uint256 ERC20Amount)
+    {
+        (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
+
+        ERC1155Amount = (_lpAmount * ERC1155Reserve) / totalSupply();
+        ERC20Amount = (_lpAmount * ERC20Reserve) / totalSupply();
+    }
+
+    function _getAddLiquidityAmount(uint256 _ERC1155Amount)
+        internal
+        view
+        returns (
+            uint256 ERC20Amount,
+            bool rounded,
+            uint256 ERC1155Reserve
+        )
+    {
+        uint256 ERC20Reserve;
+        (ERC1155Reserve, ERC20Reserve) = getReserves();
+
+        (ERC20Amount, rounded) = divRound(
+            _ERC1155Amount * ERC20Reserve,
+            ERC1155Reserve
+        );
     }
 
     function swapExactERC1155ToERC20(

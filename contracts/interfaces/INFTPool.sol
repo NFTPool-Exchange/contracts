@@ -54,6 +54,16 @@ interface INFTPool is IERC20 {
         uint256 _deadline
     ) external returns (uint256 ERC20Sold);
 
+    function getAddLiquidityAmount(uint256 _ERC1155Amount)
+        external
+        view
+        returns (uint256 ERC20Amount);
+
+    function getRemoveLiquidityAmounts(uint256 _lpAmount)
+        external
+        view
+        returns (uint256 ERC1155Amount, uint256 ERC20Amount);
+
     function getReserves()
         external
         view
