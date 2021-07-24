@@ -117,10 +117,12 @@ contract NFTPool is INFTPool, ERC20, ERC1155Holder {
         uint256 _ERC1155Amount,
         uint256 _maxERC20Amount,
         uint256 _deadline
-    ) external override returns (uint256 lpMinted) {
+    ) external override returns (uint256 ERC20Amount, uint256 lpMinted) {
         require(_deadline >= block.timestamp, "NFTP: EXPIRED");
 
         if (totalSupply() == 0) {
+            ERC20Amount = _maxERC20Amount;
+
             ERC1155Token.safeTransferFrom(
                 msg.sender,
                 address(this),
@@ -128,18 +130,15 @@ contract NFTPool is INFTPool, ERC20, ERC1155Holder {
                 _ERC1155Amount,
                 ""
             );
-            ERC20Token.safeTransferFrom(
-                msg.sender,
-                address(this),
-                _maxERC20Amount
-            );
+            ERC20Token.safeTransferFrom(msg.sender, address(this), ERC20Amount);
 
             lpMinted = _maxERC20Amount;
             emit Mint(msg.sender, _ERC1155Amount, _maxERC20Amount, lpMinted);
         } else {
             (uint256 ERC1155Reserve, uint256 ERC20Reserve) = getReserves();
 
-            (uint256 ERC20Amount, bool rounded) = divRound(
+            bool rounded;
+            (ERC20Amount, rounded) = divRound(
                 _ERC1155Amount * ERC20Reserve,
                 ERC1155Reserve
             );

@@ -33,7 +33,7 @@ interface INFTPool is IERC20 {
         uint256 _ERC1155Amount,
         uint256 _maxERC20Amount,
         uint256 _deadline
-    ) external returns (uint256 lpMinted);
+    ) external returns (uint256 ERC20Amount, uint256 lpMinted);
 
     function removeLiquidity(
         uint256 _lpAmount,
