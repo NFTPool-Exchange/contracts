@@ -20,6 +20,12 @@ interface IAaveLendingPool {
         address onBehalfOf,
         uint16 referralCode
     ) external;
+
+    function withdraw(
+        address asset,
+        uint256 amount,
+        address to
+    ) external returns (uint256);
 }
 
 contract AaveHelper is ERC1155Holder {
@@ -89,5 +95,85 @@ contract AaveHelper is ERC1155Holder {
 
         // send LP tokens to user
         nftPool.transfer(msg.sender, lpMinted);
+    }
+
+    function buyERC1155WithDAI(
+        INFTPool nftPool,
+        uint256 _ERC1155Amount,
+        uint256 _maxERC20Amount,
+        uint256 _deadline
+    ) external returns (uint256 ERC20Sold) {
+        // get aDAI amt required
+        ERC20Sold = nftPool.getPriceERC20toERC1155Exact(_ERC1155Amount);
+        require(
+            ERC20Sold <= _maxERC20Amount,
+            "Helper: Insufficient ERC20 Amount"
+        );
+
+        // get dai from user
+        DAI.transferFrom(msg.sender, address(this), ERC20Sold);
+
+        // convert DAI to aDAI
+        DAI.safeApprove(aaveLendingPool, 0);
+        DAI.safeApprove(aaveLendingPool, ERC20Sold);
+        IAaveLendingPool(aaveLendingPool).deposit(
+            address(DAI),
+            ERC20Sold,
+            address(this),
+            0
+        );
+
+        // swap aDAI -> ERC1155
+        aDAI.safeApprove(address(nftPool), 0);
+        aDAI.safeApprove(address(nftPool), ERC20Sold);
+        nftPool.swapERC20toERC1155Exact(
+            _maxERC20Amount,
+            _ERC1155Amount,
+            _deadline
+        );
+
+        // send ERC1155 to user
+        IERC1155 erc1155Token = nftPool.ERC1155Token();
+        uint256 erc1155ID = nftPool.ERC1155ID();
+        erc1155Token.safeTransferFrom(
+            address(this),
+            msg.sender,
+            erc1155ID,
+            _ERC1155Amount,
+            ""
+        );
+    }
+
+    function sellERC1155ToDAI(
+        INFTPool nftPool,
+        uint256 _ERC1155Amount,
+        uint256 _minERC20,
+        uint256 _deadline
+    ) external returns (uint256 ERC20Bought) {
+        // get aDAI amt received
+        ERC20Bought = nftPool.getPriceERC1155toERC20(_ERC1155Amount);
+        require(ERC20Bought >= _minERC20, "Helper: Insufficient ERC20 Amount");
+
+        // get NFT from user
+        IERC1155 erc1155Token = nftPool.ERC1155Token();
+        uint256 erc1155ID = nftPool.ERC1155ID();
+        erc1155Token.safeTransferFrom(
+            msg.sender,
+            address(this),
+            erc1155ID,
+            _ERC1155Amount,
+            ""
+        );
+
+        // swap ERC1155 -> aDAI
+        erc1155Token.setApprovalForAll(address(nftPool), true);
+        nftPool.swapExactERC1155ToERC20(_ERC1155Amount, _minERC20, _deadline);
+
+        // convert aDAI to DAI and send to user
+        IAaveLendingPool(aaveLendingPool).withdraw(
+            address(DAI),
+            ERC20Bought,
+            msg.sender
+        );
     }
 }
