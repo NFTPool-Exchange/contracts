@@ -28,6 +28,10 @@ const config: HardhatUserConfig = {
       url: `https://kovan.infura.io/v3/${process.env.INFURA_ID}`,
       accounts: [process.env.DEPLOYER_PRIVATE_KEY!],
     },
+    polygonTestnet: {
+      url: process.env.POLYGON_TESTNET_URL!,
+      accounts: [process.env.DEPLOYER_PRIVATE_KEY!],
+    },
   },
 };
 
