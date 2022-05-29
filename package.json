@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/NFTPool-Exchange/contracts#readme",
   "dependencies": {
+    "@chainlink/contracts": "^0.4.1",
     "@openzeppelin/contracts": "^4.1.0"
   },
   "devDependencies": {
