@@ -9,7 +9,7 @@
     "deploy:default": "hardhat deploy",
     "deploy:kovan": "hardhat deploy --network kovan",
     "force-deploy:kovan": "yarn deploy:kovan --reset",
-    "etherscan-verify:kovan": "hardhat --network kovan etherscan-verify"
+    "verify:kovan": "hardhat --network kovan etherscan-verify"
   },
   "repository": {
     "type": "git",

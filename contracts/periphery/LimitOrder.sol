@@ -120,5 +120,11 @@ contract LimitOrder is KeeperCompatibleInterface, ERC1155Holder {
         if (erc20Sold < _order.ERC20ToSell) {
             erc20.safeTransfer(_order.user, _order.ERC20ToSell - erc20Sold);
         }
+
+        /// remove order from array
+        // replace current executed order with last order in array
+        orders[_orderIndex] = orders[orders.length];
+        // remove last order from array
+        orders.pop();
     }
 }
