@@ -123,7 +123,9 @@ contract LimitOrder is KeeperCompatibleInterface, ERC1155Holder {
 
         /// remove order from array
         // replace current executed order with last order in array
-        orders[_orderIndex] = orders[orders.length];
+        if (orders.length > 1) {
+            orders[_orderIndex] = orders[orders.length];
+        }
         // remove last order from array
         orders.pop();
     }
