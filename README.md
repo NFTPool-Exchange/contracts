@@ -2,9 +2,6 @@
 
 Uniswap style AMM pools for ERC-1155 NFTs & aDAI Pairs, making NFT Market more liquid!
 
-#### Kovan Testnet Live Demo: [https://testnet.nftpool.exchange/kovan](https://testnet.nftpool.exchange/kovan)
-#### Video Explaining the Project in Detail: [https://www.youtube.com/watch?v=X3XSoheQxuI](https://www.youtube.com/watch?v=X3XSoheQxuI)
-
 ---
 
 ### For Traders:
